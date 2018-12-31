@@ -10,13 +10,25 @@
 -author("Elton").
 
 %% API
--export([]).
+-export([isBT/1,initBT/0,isEmptyBT/1,equalBT/2,eqBT/2,insertBT/2,deleteBT/2,findBT/2,findTP/2,inOrderBT/1,printBT/2,hoehe_von/1]).
 
 initBT() ->
   {}.
 
-isBT(BTree) ->
-  ok.
+
+isBT({}) ->
+  true;
+isBT({Elem,Height,LNeighbour,RNeighbour})when is_integer(Height) ->
+  L = isBT(LNeighbour),
+  R = isBT(RNeighbour),
+  if
+    L == R == true ->
+      true;
+    true ->
+      false
+  end;
+isBT(_) ->
+  false.
 
 isEmptyBT(BTree) ->
   if
@@ -33,17 +45,25 @@ equalBT(BTreeOne, BTreeTwo) ->
 eqBT(BTreeOne, BTreeTwo) ->
   ok.
 
+insertBT({}, Elem) ->
+  NewBTree;
 insertBT(BTree, Elem) ->
-  ok.
+  {Elm, Height,{}, {}} = BTree,
+  if
+    Elem =  -> ;
+    true ->
+  end,
+splay(BTree,Elem).
 
 deleteBT(BTree, Elem) ->
-  ok.
+  splay(BTree,Elem).
+
 
 findBT(BTree, Elem) ->
-  ok.
+  splay(BTree,Elem).
 
 findTP(BTree, Elem) ->
-  ok.
+  splay(BTree,Elem).
 
 inOrderBT(BTree) ->
   ok.
@@ -53,3 +73,7 @@ printBT(BTree, Filename) ->
 
 hoehe_von(BTree) ->
   ok.
+
+splay(BTree,Elem) ->
+  NewBTree =
+  NewBTree.
