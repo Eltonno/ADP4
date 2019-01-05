@@ -10,7 +10,7 @@
 -author("Elton").
 
 %% API
--export([isBT/1,initBT/0,isEmptyBT/1,equalBT/2,eqBT/2,insertBT/2,deleteBT/2,findBT/2,findTP/2,inOrderBT/1,printBT/2,hoehe_von/1]).
+-export([isBT/1,initBT/0,isEmptyBT/1,equalBT/2,eqBT/2,insertBT/2,deleteBT/2,findBT/2,findTP/2,inOrderBT/1,printBT/2]).
 
 initBT() ->
   {}.
@@ -46,94 +46,22 @@ eqBT(BTreeOne, BTreeTwo) ->
 
 insertBT({}, Elem) ->
   {Elem,1,{},{}};
-insertBT({Elm, H, LChild, RChild}, Elem) when Elm < Elem ->
-  LEmpty = isEmptyBT(LChild),
-  if
-    LEmpty == true ->
-      if
-        H > 1 ->
-          {Elm, H, {Elem, 1, {}, {}}, RChild};
-        true ->
-          {Elm ,H+1, {Elem, 1, {}, {}}, RChild}
-      end;
+insertBT(BTree, Elem) ->
+  {N_Elem, N_Height, N_LTree, N_RTree} = findBT(BTree, Elem),
+  LEmpty = isEmptyBT(N_LTree),
+  REmpty = isEmptyBT(N_RTree),
+  case N_Elem > Elem of
+    false when LEmpty ->
+      {Elem, N_Height+1, {N_Elem, 1, {}, {}}, N_RTree};
+    false ->
+      {_E,H,_L,_R} = N_LTree,
+      {Elem, N_Height, {N_Elem, H+1, N_LTree, {}}, N_RTree};
+    true when REmpty ->
+      {Elem, N_Height+1, N_LTree, {N_Elem, 1, {}, {}}};
     true ->
-      {ChildElem, ChildHeight, ChildLChild, ChildRChild} = insertBT(LChild, Elem),
-      if
-        H > ChildHeight ->
-          {Elm, H, {ChildElem, ChildHeight, ChildLChild, ChildRChild}, RChild};
-        true ->
-          {Elm ,H+1, {ChildElem, ChildHeight, ChildLChild, ChildRChild}, RChild}
-      end
-  end,
-  splay({Elm, H, LChild, RChild},Elem);
-insertBT({Elm, H, LChild, RChild}, Elem) when Elm > Elem ->
-  REmpty = isEmptyBT(RChild),
-  if
-    REmpty == true ->
-      if
-        H > 1 ->
-          {Elm, H, LChild, {Elem, 1, {}, {}}};
-        true ->
-          {Elm ,H+1, LChild, {Elem, 1, {}, {}}}
-      end;
-    true ->
-      {ChildElem, ChildHeight, ChildLChild, ChildRChild} = insertBT(LChild, Elem),
-      if
-        H > ChildHeight ->
-          {Elm, H, LChild, {ChildElem, ChildHeight, ChildLChild, ChildRChild}};
-        true ->
-          {Elm ,H+1, LChild, {ChildElem, ChildHeight, ChildLChild, ChildRChild}}
-      end
-  end,
-  splay({Elm, H, LChild, RChild},Elem).
-
-
-deleteBT(B, Ele) -> deleteBT_reku(B, Ele).
-deleteBT_reku({}, _Ele) -> {};
-deleteBT_reku({ZuLoeschen, {}, {}, _H}, ZuLoeschen) -> {};
-deleteBT_reku(_B={W, L, {}, _H}, W) -> L;
-deleteBT_reku(_B={W, {}, R, _H}, W) -> R;
-deleteBT_reku(_B={W, L, R, _H}, W) ->
-  {Ersatzwert, NeuRechts} = getMinimumAndRemove(R),
-  {Ersatzwert, L, NeuRechts, avltree:get_hoehe(L, NeuRechts)};
-deleteBT_reku(_B={W, L, R, _H}, ZuLoeschen) when ZuLoeschen < W ->
-  NeuLinks = deleteBT_reku(L, ZuLoeschen),
-  {W, NeuLinks, R, avltree:get_hoehe(NeuLinks, R)};
-deleteBT_reku(_B={W, L, R, _H}, ZuLoeschen) when ZuLoeschen > W ->
-  NeuRechts = deleteBT_reku(R, ZuLoeschen),
-  {W, L, NeuRechts, avltree:get_hoehe(L, NeuRechts)}.
-
-%%deleteBT(BTree, Elem) ->
-%%  splay(BTree,Elem).
-
-%%findBT(B={E, _L, _R, H}, E) ->
-%%  {H, B};
-%%findBT(B, E) ->
-%%  {B_neu={Bw, _Bl, _Br, Bh}, _} = findBT_(B, E, []),
-%%  case Bw == E of
-%%    true -> {Bh, B_neu};
-%%    false -> {0, B}
-%%  end.
-%%findBT_(B={E, _L, _R, _H}, E, PStack) ->
-%%  splay(B, PStack, []);
-%%findBT_(B={}, _E, _PStack) ->
-%%  {B, []};
-%%findBT_(_B={W, L, R, H}, E, PStack) when E < W ->
-%%  {L_neu, RStack} = findBT_(L, E, [l | PStack]),
-%%  B_neu = {W, L_neu, R, H},
-%%  splay(B_neu, PStack, RStack);
-%%findBT_(_B={W, L, R, H}, E, PStack) when E > W ->
-%%  {R_neu, RStack} = findBT_(R, E, [r | PStack]),
-%%  B_neu = {W, L, R_neu, H},
-%%  splay(B_neu, PStack, RStack)
-
-%%TODO: Funktion implementieren
-inOrderBT(BTree) ->
-  ok.
-%%TODO: Funktion implementieren
-printBT(BTree, Filename) ->
-  ok.
-
+      {_E,H,_L,_R} = N_RTree,
+      {Elem, N_Height, N_LTree, {N_Elem, H+1, {}, N_RTree}}
+end.
 
 zig_zag({Elem, Height, LTree, RTree}, Node, Direction) ->
   case Direction of
@@ -164,10 +92,12 @@ findBT(BTree={Elem, Height, _LTree, _RTree},Elem) ->
   {Height, BTree};
 findBT(BTree, Elem)->
   case findBT(BTree, Elem, []) of
-    {-1, Path} ->
-      {-1, {}};
+    {-1, [{Dir, Node}|Path]} ->
+      New_BTree = splay(Node, Path),
+      {-1, New_BTree};
     {Height, Node, Path} ->
-      splay(Node, Path)
+      New_BTree = splay(Node, Path),
+      {Height, New_BTree}
   end.
 
 findBT({}, _, Path) ->
@@ -185,30 +115,47 @@ findTP({}, _) ->
 findTP(BTree={Elem, Height, _LTree, _RTree},Elem) ->
   {Height, BTree};
 findTP(BTree, Elem)->
-  case findBT(BTree, Elem, []) of
+  case findTP(BTree, Elem, []) of
     {-1, Path} ->
       {-1, {}};
     {Height, Node, Path} ->
-      splay(Node, Path)
+      New_BTree = tp(Node, Path),
+      {Height, New_BTree}
   end.
 
-findTP({}, _, Path) ->
-  {-1, Path};
+findTP({}, _, Dir) ->
+  {-1, Dir};
 findTP(Node={Elem, Height, _LTree, _RTree}, Elem, Path) ->
   {Height, Node, Path};
 findTP({Elem, Height, LTree, _RTree}, Ele, Path) when Elem > Ele ->
-  findBT(LTree, Ele, append(Path, {lft, {Elem, Height, LTree, _RTree}}));
+  findTP(LTree, Ele, append({lft, {Elem, Height, LTree, _RTree}}, Path));
 findTP({Elem, Height, _LTree, RTree}, Ele, Path) when Elem < Ele ->
-  findBT(RTree, Ele, append(Path, {rgt, {Elem, Height, _LTree, RTree}}))
+  findTP(RTree, Ele, append({rgt, {Elem, Height, _LTree, RTree}}, Path))
+.
+
+tp(Node, [{Dir, Parent}|Path]) ->
+  New_Node = zig(Parent, Node, Dir),
+  tp_(New_Node, Path).
+
+tp_(Node, []) ->
+  Node;
+tp_(Node, [{Dir, {Elem, Height, LTree, RTree}}|Path]) ->
+  case Dir of
+    lft ->
+      New_Node = {Elem, Height, Node, RTree};
+    rgt ->
+      New_Node = {Elem, Height, LTree, Node}
+  end,
+  tp_(New_Node, Path)
 .
 
 splay(Node, [{Dir, Parent}]) ->
-  zig(Parent, Dir);
+  zig(Parent, Node, Dir);
 splay(Node, [{Dir, Parent},{Dir,Grandparent} | Path]) ->
-  New_Node = zig_zig(Grandparent, Dir),
+  New_Node = zig_zig(Grandparent, Node, Dir),
   splay(New_Node, Path);
 splay(Node, [{Dir, Parent},{_,Grandparent} | Path]) ->
-  New_Node = zig_zag(Grandparent, Dir),
+  New_Node = zig_zag(Grandparent, Node, Dir),
   splay(New_Node, Path).
 
 append([], []) ->
@@ -229,3 +176,98 @@ append(L,[H|T]) ->
   append([L] ++ [H], T);
 append(E1,E2) ->
   [E1] ++ [E2].
+
+
+printBT({}, Filename) ->
+  util:logging(Filename, "digraph avltree {}");
+printBT(BTree, Filename) ->
+  util:logging(Filename, "digraph avltree {\n"),
+  printBTNode(BTree, Filename),
+  util:logging(Filename, "}").
+
+printBTNode({Elem, _, {}, {}}, Filename) ->
+  util:logging(Filename, "\"" ++ util:to_String(Elem) ++ "\"");
+printBTNode({Elem, _, {}, RTree={R_Elem, R_Height, _, _}}, Filename) ->
+  util:logging(Filename, "\"" ++ util:to_String(Elem) ++ "\" -> \"" ++ util:to_String(R_Elem) ++ "\" [label = " ++ util:to_String(R_Height) ++ "];\n"),
+  printBTNode(RTree, Filename);
+printBTNode({Elem, _, LTree={L_Elem, L_Height, _, _}, {}}, Filename) ->
+  util:logging(Filename, "\"" ++ util:to_String(Elem) ++ "\" -> \"" ++ util:to_String(L_Elem) ++ "\" [label = " ++ util:to_String(L_Height) ++ "];\n"),
+  printBTNode(LTree, Filename);
+printBTNode({Elem, _, LTree={L_Elem, L_Height, _, _}, RTree={R_Elem, R_Height, _, _}}, Filename) ->
+  util:logging(Filename, "\"" ++ util:to_String(Elem) ++ "\" -> \"" ++ util:to_String(R_Elem) ++ "\" [label = " ++ util:to_String(R_Height) ++ "];\n"),
+  util:logging(Filename, "\"" ++ util:to_String(Elem) ++ "\" -> \"" ++ util:to_String(L_Elem) ++ "\" [label = " ++ util:to_String(L_Height) ++ "];\n"),
+  printBTNode(RTree, Filename),
+  printBTNode(LTree, Filename).
+
+inOrderBT({}) ->
+  [];
+inOrderBT({Elem, _Height, {}, {}}) ->
+  [Elem];
+inOrderBT({Elem, _Height, {}, RTree}) ->
+  [Elem] ++ inOrderBT(RTree);
+inOrderBT({Elem, _Height, LTree, {}})->
+  inOrderBT(LTree) ++ [Elem];
+inOrderBT({Elem, _Height, LTree, RTree}) ->
+  inOrderBT(LTree) ++ [Elem] ++ inOrderBT(RTree).
+
+deleteBT({},_) ->
+  {};
+deleteBT(BTree, Elem) ->
+  case deleteBT_(BTree, Elem) of
+    ok ->
+      findBT(BTree, Elem);
+    fail ->
+      BTree
+  end
+  .
+
+deleteBT_({}, _) ->
+  fail;
+deleteBT_({Elem, _Height, _LTree, _RTree}, Elem) ->
+  ok;
+deleteBT_({Elem, Height, LTree, RTree}, Ele) ->
+  case Elem > Ele of
+    false ->;
+    true ->
+end
+  deleteBT_({Elem, Height, LTree, RTree}, Ele).
+
+
+  %New_BTree = findBT(BTree, Ele).
+
+deleteBT(B, Ele) -> deleteBT_reku(B, Ele).
+deleteBT_reku({}, _Ele) -> {};
+deleteBT_reku({ZuLoeschen, {}, {}, _H}, ZuLoeschen) -> {};
+deleteBT_reku(_B={W, L, {}, _H}, W) -> L;
+deleteBT_reku(_B={W, {}, R, _H}, W) -> R;
+deleteBT_reku(_B={W, L, R, _H}, W) ->
+  {Ersatzwert, NeuRechts} = getMinimumAndRemove(R),
+  {Ersatzwert, L, NeuRechts, avltree:get_hoehe(L, NeuRechts)};
+deleteBT_reku(_B={W, L, R, _H}, ZuLoeschen) when ZuLoeschen < W ->
+  NeuLinks = deleteBT_reku(L, ZuLoeschen),
+  {W, NeuLinks, R, avltree:get_hoehe(NeuLinks, R)};
+deleteBT_reku(_B={W, L, R, _H}, ZuLoeschen) when ZuLoeschen > W ->
+  NeuRechts = deleteBT_reku(R, ZuLoeschen),
+  {W, L, NeuRechts, avltree:get_hoehe(L, NeuRechts)}.
+
+deleteBT({Atom, Grad, LinkerTeilBaum, RechterTeilBaum}, Element) when Element > Atom->
+  NeuerRechterTeil = deleteBT(RechterTeilBaum, Element),
+  case Grad-getHeight(NeuerRechterTeil) == 1 orelse Grad-getHeight(LinkerTeilBaum) == 1 of
+    true ->
+      {NeuBaumAtom, NeuBaumHoehe, NeuBaumLinks, NeuBaumRechts} = {Atom, Grad, LinkerTeilBaum, NeuerRechterTeil};
+    false ->
+      {NeuBaumAtom, NeuBaumHoehe, NeuBaumLinks, NeuBaumRechts} = {Atom, Grad-1, LinkerTeilBaum, NeuerRechterTeil}
+  end,
+  case (getHeight(NeuBaumRechts) - getHeight(NeuBaumLinks) < -1) orelse (getHeight(NeuBaumRechts) - getHeight(NeuBaumLinks) > 1) of
+    true ->
+      {_NBLAtom, _NBLHoehe, NBLLinks, NBLRechts} = NeuBaumLinks,
+      case 	( getHeight(NBLLinks) >= getHeight(NBLRechts) ) of
+        true ->
+          rotateRight({NeuBaumAtom, NeuBaumHoehe, NeuBaumLinks, NeuBaumRechts});
+        false ->
+          rotateRight({NeuBaumAtom, NeuBaumHoehe, rotateLeft(NeuBaumLinks), NeuBaumRechts})
+      end;
+    false ->
+      {NeuBaumAtom, NeuBaumHoehe, NeuBaumLinks, NeuBaumRechts}
+  end.
+
